@@ -37,7 +37,7 @@ module Technoweenie # :nodoc:
         end
 
         # Performs the actual resizing operation for a thumbnail
-        def resize_image(img, size)
+        def resize_image(img, size, compress=false)
           size = size.first if size.is_a?(Array) && size.length == 1 && !size.first.is_a?(Fixnum)
           if size.is_a?(Fixnum) || (size.is_a?(Array) && size.first.is_a?(Fixnum))
             size = [size, size] if size.is_a?(Fixnum)
@@ -49,7 +49,13 @@ module Technoweenie # :nodoc:
             img.change_geometry(size.to_s) { |cols, rows, image| image.resize!(cols<1 ? 1 : cols, rows<1 ? 1 : rows) }
           end
           img.strip! unless attachment_options[:keep_profile]
-          temp_paths.unshift write_to_temp_file(img.to_blob)
+          if compress && !self.thumbnail # Compress the file some if it is the full size file
+            temp_paths.unshift write_to_temp_file(img.to_blob {self.quality = 75})
+          elsif self.thumbnail # Allow the thumbnail to be higher quality (it is very small anyway)
+            temp_paths.unshift write_to_temp_file(img.to_blob {self.quality = 90})
+          else # uncompressed (as in original code)
+            temp_paths.unshift write_to_temp_file(img.to_blob)
+          end
         end
       end
     end
